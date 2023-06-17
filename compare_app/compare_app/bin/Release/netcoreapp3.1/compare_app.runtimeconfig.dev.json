@@ -1,0 +1,8 @@
+{
+  "runtimeOptions": {
+    "additionalProbingPaths": [
+      "C:\\Users\\tranc\\.dotnet\\store\\|arch|\\|tfm|",
+      "C:\\Users\\tranc\\.nuget\\packages"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: duck_source_dms
+    meta:
+      external_location: "read_csv_auto('{{env_var('source_path')}}/{name}*.csv', header = True)"
+    tables:
+      - name: SaleSummary_C1V1_VN11_0523
+      - name: SaleSummary_C1V1_VN12_0523
+      - name: SaleSummary_C1V1_VN13_0523
+      - name: SaleSummary_C1V1_VN15_0523
+      - name: SaleSummary_C1V1_VN16_0523
+      - name: SaleSummary_C1V1_VN17_0523
+      - name: SaleSummary_C1V1_VN19_0523

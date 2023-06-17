@@ -1,0 +1,2 @@
+set source_path=D:/ThucTap/Inter-K/checkso/internal/Round/demo_dbt-master/data/source
+set result_path=D:/ThucTap/Inter-K/checkso/internal/Round/demo_dbt-master/data/result

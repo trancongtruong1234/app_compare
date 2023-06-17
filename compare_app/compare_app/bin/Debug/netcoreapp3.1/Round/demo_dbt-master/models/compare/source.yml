@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: duck_source
+    meta:
+      external_location: "read_csv_auto('{{env_var('source_path')}}/{name}.csv', header = True)"
+    tables:
+      - name: CL04_CRM_R4
+      - name: VN08_DIST_PROMOTION_R3
+      - name: VN08_DIST_PROMOTION_R4
+      - name: VN08_DIST_PROMOTION_R5
+      - name: VN08_DIST_PROMOTION_R6
+      - name: CL02_PROMOTION_CLAIM_FOC_R5
+      - name: INVOICE_DTL_R1
+      - name: INVOICE_DTL_R6
+      - name: INVOICE_HDR_R2
+      - name: TXN_NOTEHDR_CP_R2
+      - name: TXN_NOTEPRD_CP
+      - name: VN01_SECONDARY_SALES_GSV
+      - name: VN04_OFF_PUR_INV_OPI_R3
+      # - name: cl02_pro
+      # - name: vn08_pr

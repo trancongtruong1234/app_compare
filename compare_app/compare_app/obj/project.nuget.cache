@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "QzFRsbbMRZUGLlFv2DeOkRlm6mEGi7u9ww/q+3zSjXtLy0V1e7X8pnKAPV7HjH2+LcNkcDmjD+LIyQRdQK5YGw==",
+  "success": true,
+  "projectFilePath": "D:\\ThucTap\\Inter-K\\checkso\\internal\\compare_app\\compare_app\\compare_app.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\tranc\\.nuget\\packages\\microsoft-windowsapicodepack-core\\1.1.4\\microsoft-windowsapicodepack-core.1.1.4.nupkg.sha512",
+    "C:\\Users\\tranc\\.nuget\\packages\\microsoft-windowsapicodepack-shell\\1.1.4\\microsoft-windowsapicodepack-shell.1.1.4.nupkg.sha512",
+    "C:\\Users\\tranc\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\3.1.25\\microsoft.netcore.app.host.win-x64.3.1.25.nupkg.sha512"
+  ],
+  "logs": []
+}

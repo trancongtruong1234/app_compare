@@ -1,0 +1,1 @@
+set result_path=C:/Users/tranc/Desktop/data_dms_mm/result

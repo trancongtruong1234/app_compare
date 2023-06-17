@@ -1,0 +1,135 @@
+{{ config(materialized='external', location="{{env_var('result_path')}}/VN15/RESULT_COMPARE_DETAIL_VN15.csv") }}
+WITH dms_table AS (
+  SELECT 
+    "order date" AS ORDER_DATE,
+    RIGHT ("order reference",8) AS ORDER_REFERENCE,
+    RIGHT("distributor code",8) AS DISTRIBUTOR_CODE,
+    "customer code" AS CUSTOMER_CODE,
+    (CASE WHEN "order reference" LIKE '%SOV%' AND "route code" IS NULL THEN 'No Route' 
+    ELSE "route code" END ) AS ROUTE_ID,
+    "settlement date" AS SETTLEMENT_DATE, 
+    "invoice number" AS INVOICE_NUMBER,
+    ROUND(SUM("quantity(ec)"),2) AS QUANTITY_EC,
+    ROUND(SUM("NSR"),0) AS NSR,
+    SUM("quantity(ea)") AS QUANTITY_EA
+  FROM  {{source('duck_source_dms','SaleSummary_C1V1_VN15_0523')}}
+  GROUP BY 1,2,3,4,5,6,7
+),
+mm_table AS (
+SELECT 
+  ORDER_DATE,
+  ORDER_REFERENCE,
+  DISTRIBUTOR_CODE,
+  CUSTOMER_CODE,
+  ROUTE_ID,
+  QUANTITY_EC,
+  NSR,
+  QUANTITY_EA 
+FROM (SELECT   
+        "Date" AS ORDER_DATE,
+        CASE
+            WHEN Column1 LIKE '%-%' THEN SUBSTR(Column1,1,INSTR(Column1,'-') + INSTR(SUBSTR(Column1,INSTR(Column1,'-')+1,4),'-')-1)
+            ELSE REPLACE(Column1, '[^0-9]', '')
+        END AS ORDER_REFERENCE,
+        Distributor AS DISTRIBUTOR_CODE,
+        LEFT(Customer,10) AS CUSTOMER_CODE,
+        "Sales Route" AS ROUTE_ID,
+        ROUND(SUM("SFA Deliv. Qty (VN) - EC"),2) AS QUANTITY_EC,
+        SUM("SFA Deliv. NSR (VN)") AS NSR,
+        SUM("SFA Deliv. Qty (VN) - EA") AS QUANTITY_EA 
+	FROM {{source('duck_source_mm','MM_Sales_Summary_VN15')}}
+	GROUP BY 1,2,3,4,5 )
+),
+
+combine_2_tables AS (
+  SELECT
+ 'MeKong Region' AS DMS_REGION,
+  dms_table.ORDER_DATE AS DMS_ORDER_DATE,
+  mm_table.ORDER_DATE AS MM_ORDER_DATE,
+  dms_table.ORDER_REFERENCE AS DMS_ORDER_REFERENCE,
+  mm_table.ORDER_REFERENCE AS MM_ORDER_REFERENCE,
+  dms_table.QUANTITY_EC AS DMS_QUANTITY_EC,
+  dms_table.NSR AS DMS_NSR,
+  mm_table.QUANTITY_EC AS MM_QUANTITY_EC,
+  mm_table.NSR AS MM_NSR,
+  dms_table.QUANTITY_EA AS DMS_QUANTITY_EA,
+  mm_table.QUANTITY_EA AS MM_QUANTITY_EA,
+  dms_table.DISTRIBUTOR_CODE AS DMS_DISTRIBUTOR_CODE,
+  mm_table.DISTRIBUTOR_CODE AS MM_DISTRIBUTOR_CODE,
+  dms_table.CUSTOMER_CODE AS DMS_CUSTOMER_CODE,
+  mm_table.CUSTOMER_CODE AS MM_CUSTOMER_CODE,
+  dms_table.ROUTE_ID AS DMS_ROUTE_ID,
+  (CASE 
+    WHEN mm_table.ORDER_REFERENCE LIKE '%SOV%' AND mm_table.ROUTE_ID IS NULL THEN 'No Route' 
+    ELSE mm_table.ROUTE_ID END ) AS MM_ROUTE_ID,
+  CASE
+    WHEN dms_table.ORDER_REFERENCE =  mm_table.ORDER_REFERENCE THEN 'TRUE'
+    WHEN dms_table.ORDER_REFERENCE IS NULL AND  mm_table.ORDER_REFERENCE IS NULL THEN 'BOTH ARE NULL'
+    WHEN dms_table.ORDER_REFERENCE IS NULL THEN 'VALUE IS NULL IN DMS ONLY'
+    WHEN mm_table.ORDER_REFERENCE IS NULL THEN 'VALUE IS NULL IN MM ONLY'
+    WHEN dms_table.ORDER_REFERENCE !=  mm_table.ORDER_REFERENCE THEN 'VALUES DO NOT MATCH'
+    ELSE 'unknown' -- this should never happen
+  END AS STATUS_SO,
+  dms_table.SETTLEMENT_DATE AS DMS_SETTLEMENT_DATE, 
+  dms_table.INVOICE_NUMBER AS DMS_INVOICE_NUMBER
+FROM dms_table
+FULL OUTER JOIN mm_table 
+  ON dms_table.ORDER_DATE = mm_table.ORDER_DATE
+  AND dms_table.ORDER_REFERENCE = mm_table.ORDER_REFERENCE
+  AND dms_table.DISTRIBUTOR_CODE = mm_table.DISTRIBUTOR_CODE
+  AND dms_table.CUSTOMER_CODE = mm_table.CUSTOMER_CODE
+),
+
+check_GAP AS (
+  SELECT DISTINCT 
+    DMS_REGION,
+    DMS_ORDER_DATE,
+    DMS_ORDER_REFERENCE,
+    DMS_QUANTITY_EC,
+    DMS_NSR,
+    DMS_QUANTITY_EA,
+    MM_ORDER_DATE,
+    MM_ORDER_REFERENCE,
+    MM_QUANTITY_EC,
+    MM_NSR,
+    MM_QUANTITY_EA,
+    STATUS_SO,
+    DMS_QUANTITY_EC - MM_QUANTITY_EC AS GAP_QUANTITY_EC,
+    DMS_NSR - MM_NSR AS GAP_NSR,
+    DMS_QUANTITY_EA - MM_QUANTITY_EA AS GAP_QUANTITY_EA,
+    DMS_DISTRIBUTOR_CODE,
+    MM_DISTRIBUTOR_CODE,
+    DMS_CUSTOMER_CODE,
+    MM_CUSTOMER_CODE,
+    DMS_ROUTE_ID,
+    MM_ROUTE_ID,
+    DMS_SETTLEMENT_DATE, 
+    DMS_INVOICE_NUMBER,
+    CASE 
+      WHEN DMS_QUANTITY_EC - MM_QUANTITY_EC != 0 THEN 'GAP EC'
+      WHEN DMS_NSR - MM_NSR != 0 THEN 'GAP NSR'
+      WHEN DMS_QUANTITY_EA - MM_QUANTITY_EA != 0 THEN 'GAP EA'
+      WHEN STATUS_SO != 'TRUE' THEN 'GAP SO'
+      ELSE 'MATCH'
+    END AS STATUS
+FROM combine_2_tables
+)
+SELECT  
+    DMS_REGION,
+    DMS_ORDER_REFERENCE,
+    DMS_ORDER_DATE,
+    DMS_SETTLEMENT_DATE, 
+    DMS_INVOICE_NUMBER
+    DMS_DISTRIBUTOR_CODE,
+    DMS_CUSTOMER_CODE,
+    DMS_ROUTE_ID,
+    DMS_QUANTITY_EC,
+    MM_QUANTITY_EC,
+    DMS_NSR,
+    MM_NSR,
+    DMS_QUANTITY_EA,
+    MM_QUANTITY_EA,
+    STATUS_SO,
+    STATUS
+FROM check_GAP
+WHERE STATUS != 'MATCH' AND STATUS_SO != 'TRUE'

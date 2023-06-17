@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: duck_source_mm
+    meta:
+      external_location: "read_csv_auto('{{env_var('source_path')}}/{name}*.csv', header = True)"
+    tables:
+      - name: MM_Sales_Summary_VN11
+      - name: MM_Sales_Summary_VN12
+      - name: MM_Sales_Summary_VN13
+      - name: MM_Sales_Summary_VN15
+      - name: MM_Sales_Summary_VN16
+      - name: MM_Sales_Summary_VN17
+      - name: MM_Sales_Summary_VN19
